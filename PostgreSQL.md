@@ -138,14 +138,16 @@ high availity / HA / replication / sharding / GP primary segment mirror segment
     
     * __DB level__  
         
-    __그림 1__ ↓
+    __그림 1__ ↓  
+    
     <img src="https://user-images.githubusercontent.com/89211245/157142168-adf9c97f-afdf-4806-acdb-8943158e86b6.jpg" width="200" height="300">  
     
-    그림 1과 같이 같은 서버에 master db와 slave db를 설치할 수 있음  
-    그러나 서버에 장애가 생기면 master db도 날라가기 때문에 일반적으로 그림 2와 같은 방법으로 사용됨
-    ※ master db의 포트 번호 != slave db의 포트 번호
+    그림 1과 같이 같은 서버에 master db와 slave db를 설치할 수 있음    
+    그러나 서버에 장애가 생기면 master db도 날라가기 때문에 일반적으로 그림 2와 같은 방법으로 사용됨  
+    ※ master db의 포트 번호 != slave db의 포트 번호  
         
-    __그림 2__ ↓
+    __그림 2__ ↓  
+    
     <img src="https://user-images.githubusercontent.com/89211245/157142163-9c064d54-5015-4237-91cc-516be552c63e.jpg" width="300" height="300">
     
     GP도 그림2와 같은 방법을 사용함   
