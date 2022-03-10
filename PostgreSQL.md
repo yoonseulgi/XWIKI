@@ -6,7 +6,7 @@
 high availity / HA / replication / sharding / GP primary segment mirror segment
 - __high availity(= HA)__  
     서버, 네트워크, 프로그램 등 정보 시스템이 지속적으로 운용이 가능한 성질  
-    2개의 서버를 클러스터로 엮어서 2개의 서버 중 한 서버에서 장애가 발생할 경우 다른 서버가 즉시 업무를 수행하므로 빠른 복구 가능  
+    ex) 2개의 서버를 클러스터로 엮어서 2개의 서버 중 한 서버에서 장애가 발생할 경우 다른 서버가 즉시 업무를 수행하므로 빠른 복구 가능  
 - __replication__  
     데이터 백업을 위해 다른 곳으로 데이터를 복사하는 것  
     신뢰성, 성능 개선 등에 영향을 줌  
@@ -43,9 +43,12 @@ high availity / HA / replication / sharding / GP primary segment mirror segment
 - Rules system (query rewrite system)  
     사람이 만든 규칙을 적용하여 데이터를 저장, 정렬 및 조작하는 시스템  
     사전에 정의된 규칙을 사용하여 작업을 자동적으로 수행  
-    __Q)__ 사용자가 작성한 쿼리를 DBMS가 더 나은 쿼리 실행계획으로 최적화하는 것을 의미하는 것인가요?
+    DB가 항상 최적의 실행경로를 만드는 것이 불가능하기 때문에 직접 최적의 실행경로를 작성해주는 것  
+    힌트가 존재하면 옵티마이저가 최우선으로 힌트를 사용  
     
-- B-tree, R-tree, hash, GiST method indexes <- 이와 같이 여러 인덱스를 지원  
+    
+    
+- B-tree, R-tree, hash, GiST method indexes ← 이와 같이 여러 인덱스를 지원  
     기본적으로 제공되는 인덱스는 __B-tree__ (between ~ in ~, in null, is not null 등을 수행할 때 인덱싱 됨)  
     __has index__ 는 인덱싱된 열의 값을 해시값으로 저장함. 해시 인덱시는 동등 비교만 처리 가능   
     __GiST(Generalized Search Tree)__ : 확장 가능한 데이터 구조, 사용자가 모든 종류의 데이터에 대한 인덱스를 개발 적용하여 조회할 수 있도록 함
@@ -120,7 +123,7 @@ high availity / HA / replication / sharding / GP primary segment mirror segment
 - Auto-increment (sequences)  
     해당 속성이 컬럼에 지정되면 자동으로 1씩 증가하여 순서를 부여  
     
-- Asynchronous replication
+- Asynchronous replication  
     비동기식은 동기식보다 복잡하지만 결과가 출력되는 시간동안 다른 작업을 할 수 있기에 자원을 효율적으로 사용할 수 있음   
     master db server와 slave db server의 동기화방식으로 __동기__ , __비동기__ 이 있음  
     ※ __replication__   
@@ -186,9 +189,15 @@ high availity / HA / replication / sharding / GP primary segment mirror segment
     client는 인터페이스 라이브러리(jdbc, obdc 등)을 통해 서버에게 연결을 요청함 -> postmaster 프로세스가 서버와 연결을 중계 -> 클라이언트와 서버가 연결을 통해 질의를 수행  
         
 - 서버 내부의 쿼리 수행 과장  
-    쿼리구문 분석 -> 쿼리의미 분석 -> 서버에 정의된 룰에 따라 재정의 -> 실행 가능한 여러 쿼리 실행계획 중 최적화된 실행계획 선택 -> 실행 -> 사용자에게 결과 반환 
+    쿼리구문 분석 -> 쿼리의미 분석 -> 룰에 따라 쿼리 재정의 -> 실행 가능한 여러 쿼리 실행계획 중 최적화된 실행계획 선택 -> 실행 -> 사용자에게 결과 반환  
+    쿼리 수행 과정은 크게 __parser__ , __optimizer__ , __row-source__ __generation__ 3단계로 나눌 수 있음  
+    optimizer   
+        - Query transformer : 사용자 SQL문을 최적화하기 쉬운 형태로 변환  
+        - Plan generator : 실행가능한 쿼리 실행계획 생성  
+        - Estimator : 실행계획의 비용을 계산   
         
-<img src="https://user-images.githubusercontent.com/89211245/157173519-5b1bdb30-15b0-41ab-8380-9b10d1b7f23e.jpg" width="200" height="200">  
-
+<img src="https://user-images.githubusercontent.com/89211245/157173519-5b1bdb30-15b0-41ab-8380-9b10d1b7f23e.jpg" width="200" height="200">   
+            
     
+   
     
