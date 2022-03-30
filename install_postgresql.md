@@ -5,16 +5,12 @@
     WAL 파일 자체를 전달하는 방식
     ※ WAL(Write-Ahead Logging) 파일 : 데이터베이스의 변경 내용을 로그 파일에 미리 저장한 후 작업을 수행 
 - 방법 2) Streaming
-    로그 내용을 전달하는 방식
-    
-    
-    
-    
- 
+    로그 내용을 전달하는 방식  
+        
 ### 1. postgreSQL 설치하기
 - 서버 생성하기(개발환경)  
-- 서버에 DB 설치하기   
-
+- 서버에 DB 설치하기  
+  
 #### 나의 작업  
 - Install the repository RPM:  
     sudo yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm  
@@ -26,16 +22,16 @@
     sudo /usr/pgsql-14/bin/postgresql-14-setup initdb  
     sudo systemctl enable postgresql-14  
     sudo systemctl start postgresql-14  
-    
+
 - postgresql 접속 : sudo -u postgres psql  
 - postgresql 나가기 : EXIT  
 
 
-### 2. optimizing 하기
+### 2. optimizing 하기  
 - 서비스 환경에 맞도록 DB 최적화시키기  
 - 서버가 가동되기 전에 환경 설정에 필요한 파라메타 값을 찾아서 미리 설정해주기  
     why? 두 번 가동하지 않도록..  
-        
+
 #### 나의 작업
 - postgresql 환경 파일 경로 : cd /var/lib/pgsql/14/data  
 - max_connection : 최대 동시 접속자 설정  
@@ -74,12 +70,12 @@
     * logical slot   
     
     
-#### 나의 작업
-- replication 사용자 - postgres    
+#### 작업 1.
+- replication 사용자 - repluser(user name)  
 - 스탠바이 서버에서 마스터 서버에 접근할 replication 전용 유저 생성  
     CREATE ROLE repluser WITH REPLICATION PASSWORD 'zhtmzha123!' LOGIN;  
 - 스탠바이 서버 pg_hba.conf 파일에서 아래와 같은 유저 정보 추가  
-    host replication repluser ip주소(172.23.13.0/24) trust    
+    host replication repluser ip주소(172.23.13.0/24) trust  
     (172.23.13.0으로 들어오는 connection은 수용하겠다는 의미로 해석)  
   
 - 스탠바이 서버 /var/lib/pgsql/14/data 파일을 /for_pg_backup 위치에 백업  
@@ -116,13 +112,8 @@
     3. postgresql.conf 에서 재시작시 변경해야 할 환경변수 변경  
 ![화면설정](https://user-images.githubusercontent.com/89211245/160515160-45013f67-96df-4943-a310-c47849de125e.PNG)  
          
-    4. initdb  
-    기존 data 디렉토리 백업 후 data 디렉토리 삭제  
-    sudo systemctl /usr/pgsql-14/bin/pos tgresql-14-setup initdb  
-    sudo systemctl start postgresql-14  
-    -> DB 서버가 running 되긴 하나.. 환경 파일 속성을 변경하면 다시 똑같은 에러 발생   
-        
-__최적화 속성과 쪼개서 실행한 결과, replication을 위해 변경한 속성에서 문제가 발생함__  
+    4. optimizing을 위한 속성과 replication을 위한 속성을 나누어 수행  
+      __replication을 위한 속성을 변경할 때 에러 발생 확인__  
 
 ### 에러 원인 파악
 - postgresql.conf에서 replication을 위한 속성을 변경하면 에러가 발생한다고 생각했으나, pg_hba.conf를 설정하면 에러가 발생!  
