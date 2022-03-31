@@ -191,6 +191,15 @@ SELECT * FROM pg_create_physical_replication_slot('repl_slot_01');
 - 서버가 가동된 이후로는 꺼지지 않도록 하고, 최대한 빠르게 구동되도록 하기 
     vip 사용하기, 접속 정보 바꾸기(master -> slave) 등  
             
+#### 참고
+- Fail over: master가 죽었을 때, slave를 master로 전환  
+- Fail back: slave를 통해 master를 복구 즉, master와 slave의 전환 X  
+- warm standby server : master server의 장애로 stnadby server가 master로 승격할 때까지 연결할 수 없는 서버 - hot standby server : read-only 쿼리 요청은 받을 수 있는 서버   
+
+#### 나의 작업
+- promote_trigger_file
+- pg_promote()
+            
 ### ------- 여기까지 진행 후 덕우과장님께 말씀 드리기 ------
         
 ### 5. 백업 및 장애 복구하기
@@ -205,3 +214,8 @@ SELECT * FROM pg_create_physical_replication_slot('repl_slot_01');
     heap 영역에서 GC가 발생했을 때  
     
 
+## __질문__  
+- replication되기 전엔 log에 기록되는데, replication 후엔 왜 log에 기록이 안됨?  
+- table 추구, record 추가 및 삭제 등 테스트를 해보았는데.. standby server에 적용 됨  
+- 만약 log가 기록이 되지 않는다면.. 복구를 어케 하나? 
+- streaming replication 방법을 사용해서 wal 블록 사이즈만큼 안차더라도 레코드별로 전송되도록 설정했는데.. 
