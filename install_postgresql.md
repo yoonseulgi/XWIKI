@@ -46,7 +46,7 @@
     wal segment가 갱신되는 시간. 즉, 데이터 손실을 줄이기 위해 check point를 갱신하는 시간    
 - wal_buffers = 16MB  
     log가 기록되는 wal buffer의 크기  
-- default_statistics_target = 100 
+- default_statistics_target = 100  
     특정 쿼리가 최적화되지 않은 경우 옵티마이저가 다른 계획을 선택하다록 하는 변수  
 - random_page_cost = 4  
     비순차적으로 저장장치 페이지를 읽어오는 비용에 대한 추정치를 설정  
@@ -95,11 +95,11 @@
     
     
 #### 작업 1.
-- replication 사용자 - repluser(user name)  
+- replication 사용자 - replicaion(user name)  
 - 스탠바이 서버에서 마스터 서버에 접근할 replication 전용 유저 생성  
-    CREATE ROLE repluser WITH REPLICATION PASSWORD 'zhtmzha123!' LOGIN;  
+    CREATE ROLE repluser WITH REPLICATION PASSWORD 'password' LOGIN;  
 - 스탠바이 서버 pg_hba.conf 파일에서 아래와 같은 유저 정보 추가  
-    host replication repluser ip주소(172.23.13.0/24) trust  
+    host replication replication ip주소(172.23.13.0/24) trust  
     (172.23.13.0으로 들어오는 connection은 수용하겠다는 의미로 해석)  
   
 - 스탠바이 서버 /var/lib/pgsql/14/data 파일을 /for_pg_backup 위치에 백업  
@@ -111,14 +111,14 @@
 - 마스터 서버의 postgresql.conf 파일에 설정 변수 추가  
     listen_addresses = '*'   인증/권한 관리는 pg_hba.conf 파일에서 진행  
     wal_level = replica  대기 서버에 읽기전용 작업 가능  
-    max_wal_senders = 2   WAL 파일을 전송할 수 있는 최대 서버 수  
+    max_wal_senders = 2   WAL 파일을 전송할 수 있는 최대 서버 수, standby 서버가 1개 이기에 2로 설정  
     wal_keep_segments = 32   마스터 서버 디렉토리에 보관할 최근 WAL 파일의 수  
     max_replication_slots = 32  서버가 지원할 수 있는 복제 슬롯의 최대 개수  
     port = 5432  
     
 - 위와 같이 환경변수 설정 후 마스터 서버의 DB 재시작
     systemctl restart postgresql-14
-    systemctl status postgresql-14  - postgresql-14.service의 상태를 확인할 수 있음
+    systemctl status postgresql-14  // postgresql-14.service의 상태를 확인할 수 있음
     
     #### 여기서 문제 발생 
     - systemctl restart postgresql-14 을 수행한 결과 에러 발생
@@ -156,37 +156,38 @@
 - Master server  
     - DB에 replication을 위한 user 생성 - user name: replication, PW = password  
     - postgresql.conf에 replication을 위한 속성 설정  
-		```text
+	```text
         listen_addresses = '*'  
         wal_level = hot_standby  
         max_wal_senders = 2       // stand_by server 개수보다 크게 설정  
         max_connections = 100     // stand_by server도 connection으로 분류되기 때문에 max_wal_senders 보다 큰 값으로 설정  
         max_replication_slot = 2  // 본 test에서는 slot 1개를 사용하지만, 여유를 위해 2로 설정함, max_replication_slot 값이 설정되어야 slot을 생성할 수 있음  
-		```
+	```
   
   
     - pg_hba.conf 에서 master server로 request가 올 ip주소 기입  
-		```text
+	```text
         ex) host    replication    user_name    ip주소    md5  
         md5는 인증을 위한 method를 기입   
         
         host    replication    replication    172.23.13.0/24    md5
-		```
+	```
 
     - 위에서 명시한 ip주소로 요청이 들어오도록 방화벽 설정해주어야 함  
         - test 1. 방화벽 설정 없이 수행 : 방화벽 설정 없이도 수행 O     
         - test 2. 방화벽 설정 후 수행  
+        - 방확벽 설정이라는 것이 pg_hba.conf에서 설정을 변경하는 것을 의미  
         
     - slot 만들기  
-		```text
-		sudo -u postgres psql # db postgres user로 접속  
-		SELECT * FROM pg_create_physical_replication_slot('repl_slot_01');  
-		```
+	```text
+	sudo -u postgres psql # db postgres user로 접속  
+	SELECT * FROM pg_create_physical_replication_slot('repl_slot_01');  
+	```
 
 - Stand_by server 
     - systemctl stop postgresql-14
     - master server의 data 디렉터리 그대로 백업하기  
-		```text
+	```text
         su - postgres  
         rm -rf /var/lib/pgsql/14/data    // 기존 stand_by의 data 디렉터리 삭제   
         pg_basebackup -h 172.23.13.11 -D /var/lib/pgsql/14/data -U replication -R  
@@ -194,7 +195,7 @@
             -U: replication user  
             -D: standby server 상의 data 디렉터리 저장 위치  
             -R: 복제를 위한 standby DB 설정을 자동으루 수행 postgresql.auto.conf에 자동 설정  
-		```
+	```
   
   
     - systemctl start postgresql-14  
@@ -219,7 +220,8 @@
 #### 참고
 - Fail over: master가 죽었을 때, slave를 master로 전환  
 - Fail back: slave를 통해 master를 복구 즉, master와 slave의 전환 X  
-- warm standby server : master server의 장애로 stnadby server가 master로 승격할 때까지 연결할 수 없는 서버 - hot standby server : read-only 쿼리 요청은 받을 수 있는 서버   
+- warm standby server : master server의 장애로 stnadby server가 master로 승격할 때까지 연결할 수 없는 서버 
+- hot standby server : read-only 쿼리 요청은 받을 수 있는 서버   
 - pgpool
 - watchdog : pgpool 노드가 살아있는지 지속적으로 체크하고, 죽은 노드를 살아있는 노드로 vip를 셋팅하는 역할  
   pgpool을 설치하면 내장되어 있는 기능  
