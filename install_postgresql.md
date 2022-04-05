@@ -1,11 +1,4 @@
 # Install postgreSQL
-
-### replication 설정
-- 방법 1) Log-Shipping
-    WAL 파일 자체를 전달하는 방식
-    ※ WAL(Write-Ahead Logging) 파일 : 데이터베이스의 변경 내용을 로그 파일에 미리 저장한 후 작업을 수행 
-- 방법 2) Streaming
-    로그 내용을 전달하는 방식  
         
 ### 1. postgreSQL 설치하기
 - 서버 생성하기(개발환경)  
@@ -87,12 +80,18 @@
         * log shipping : wal 파일 자체를 전달   
             wal 파일이 일정 크기만큼 채워질 동안 전달이 일어나지 않음  
         * streaming : wal 파일 저장여부와 관계 없이 로그의 내용을 직접 전달  
-            마스터와 스탠바이 서버 연결 네트워크에 문제가 없다면 데이터 유실 걱정이 적음
+            마스터와 스탠바이 서버 연결 네트워크에 문제가 없다면 데이터 유실 걱정이 적음  
         select pg_create_physical_replication_slot(''); - slot 생성  
         select pg_drop_replication_slot(''); - slot 삭제  
        
     * logical slot   
     
+- replication 설정
+	- 방법 1) Log-Shipping
+	    WAL 파일 자체를 전달하는 방식
+	    ※ WAL(Write-Ahead Logging) 파일 : 데이터베이스의 변경 내용을 로그 파일에 미리 저장한 후 작업을 수행 
+	- 방법 2) Streaming
+	    로그 내용을 전달하는 방식  
     
 #### 작업 1.
 - replication 사용자 - replicaion(user name)  
