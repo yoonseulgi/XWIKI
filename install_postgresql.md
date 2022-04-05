@@ -126,16 +126,18 @@
 ![에러](https://user-images.githubusercontent.com/89211245/160507457-c8661507-5c0f-4250-81ab-86b25831af09.PNG)  
         
     #### 에러를 해결하기 위한 작업   
-    1. systemctl stop postgresql-14 -> systemctl start postgresql-14  
-    2. initdb.log에서 다음과 같은 명령어를 수행하여 db 서버 수행가능하다는 문구 확인 후 실행해봄  
+    1) systemctl stop postgresql-14 -> systemctl start postgresql-14  
+    2) initdb.log에서 다음과 같은 명령어를 수행하여 db 서버 수행가능하다는 문구 확인 후 실행해봄  
         su postgres  - 서버 프로세스의 소유자로 변경 후 실행  
         /usr/pgsql-14/bin/pg_ctl -D /var/lib/pgsql/14/data/ -l logfile start    
         -> pg_ctl: could not start server 결과 나옴..  
         
-    3. postgresql.conf 에서 재시작시 변경해야 할 환경변수 변경  
+    3) postgresql.conf 에서 재시작시 변경해야 할 환경변수 변경  
 ![화면설정](https://user-images.githubusercontent.com/89211245/160515160-45013f67-96df-4943-a310-c47849de125e.PNG)  
-         
-    4. optimizing을 위한 속성과 replication을 위한 속성을 나누어 수행  
+	
+	변경시 재시작을 잘못 해석함  
+	
+    4) optimizing을 위한 속성과 replication을 위한 속성을 나누어 수행  
       __replication을 위한 속성을 변경할 때 에러 발생 확인__  
 
 ### 에러 원인 파악
@@ -173,8 +175,6 @@
 	```
 
     - 위에서 명시한 ip주소로 요청이 들어오도록 방화벽 설정해주어야 함  
-        - test 1. 방화벽 설정 없이 수행 : 방화벽 설정 없이도 수행 O     
-        - test 2. 방화벽 설정 후 수행  
         - 방확벽 설정이라는 것이 pg_hba.conf에서 설정을 변경하는 것을 의미  
         
     - slot 만들기  
