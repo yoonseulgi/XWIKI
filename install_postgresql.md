@@ -34,17 +34,41 @@
 
 #### 나의 작업
 - postgresql 환경 파일 경로 : cd /var/lib/pgsql/14/data  
-- max_connection : 최대 동시 접속자 설정  
-    클라이언트의 연결요청으로 서버를 부하시키고, 서비스 중단까지 이어지는 문제를 방지하기 위해  
-        
-- shared_buffer : 1GB로 설정
-    쿼리 결과를 메모리에 저장해주는 공간(캐시 메모리와 유사한 개념)    
-    DB만 돌아가는 환경이면 버퍼의 크기를 넉넉하게 설정해도 되지만, 다양한 프로그램이 돌아가기에 고려해서 설정  
-    서버 메모리 기준 25~40%가 적절  
-- wal_buffer : commit하기 전, 디스크에 적재되지 않은 데이터 값들을 보관(log data)  
-- dead tuple : select 성능 저하를 방지하기 위함
-    ex) dead tuple이 (테이블 레코드 수 + 0.2 ) + 50 이 발생한 경우 autovacuum 동작
-- orafce 확장 작업    
+- max_connections = 100  
+    DB 서버에 최대 동시 연결 수  
+- shared_buffers = 1GB  
+    서버 메모리 기준 1/4~1/2 설정, 디스크를 캐시로 사용하기 위한 공간  
+- effective_cache_size = 3GB  
+    메모리를 캐시로 사용하기 위한 공간, 서버 메모리의 1/2 이상 설정  
+- maintenance_work_mem = 256MB  
+    인덱스 생성, 외래키 등 유지보수에 사용되는 메모리 공간  
+- checkpoint_completion_target = 0.9  
+    wal segment가 갱신되는 시간. 즉, 데이터 손실을 줄이기 위해 check point를 갱신하는 시간    
+- wal_buffers = 16MB  
+    log가 기록되는 wal buffer의 크기  
+- default_statistics_target = 100 
+    특정 쿼리가 최적화되지 않은 경우 옵티마이저가 다른 계획을 선택하다록 하는 변수  
+- random_page_cost = 4  
+    비순차적으로 저장장치 페이지를 읽어오는 비용에 대한 추정치를 설정  
+- effective_io_concurrency = 2  
+    db 서버가 동시에 실행할 수 있는 디스크 i/o 개수 지정  
+- work_mem = 10485kB  
+    저장장치에 기록되기 전에 임시로 저장되는 메모리 크기 지정  
+- min_wal_size = 2GB  
+    wal size의 최소값  
+- max_wal_size = 8GB  
+    wal size의 최대값  
+- max_worker_processes = 2  
+    시스템이 지원할 수 있는 백그라운드 프로세스의 최대 수  
+- max_parallel_workers_per_gather = 1  
+    노드에서 실행될 수 있는 병렬 작업자의 최대 수  
+- max_parallel_workers = 2  
+    한 번에 활성화될 수 있는 병렬 작업자의 최대 수  
+- max_parallel_maintenance_workers = 1  
+    단일 명령어를 실행할 수 있는 병렬 작업자의 최대 수  
+    
+- 위와 같은 환경변수는 master에서만 설정하고, replication할 때 slave로 복제해야 하기에 slave엔 설정할 필요가 없었음.
+    
 
 ### 3. replication 설정하기
 - __무중단__ 으로 설정하기   
@@ -126,42 +150,43 @@
 
 - 인증 방법을 trust로 설정하면 에러가 발생하는 것으로 예측
 - local의 인증은 peer로, host의 인증은 md5로 수정하니 위와 같은 에러 발생 X
+- 인증 방법을 trust(비밀번호 없이 사용자로 접근)로 설정하려면 사전에 ssh key 설정이 필요  
 
 ### 나의 작업  
 - Master server  
     - DB에 replication을 위한 user 생성 - user name: replication, PW = password  
     - postgresql.conf에 replication을 위한 속성 설정  
-```text
+		```text
         listen_addresses = '*'  
         wal_level = hot_standby  
         max_wal_senders = 2       // stand_by server 개수보다 크게 설정  
         max_connections = 100     // stand_by server도 connection으로 분류되기 때문에 max_wal_senders 보다 큰 값으로 설정  
         max_replication_slot = 2  // 본 test에서는 slot 1개를 사용하지만, 여유를 위해 2로 설정함, max_replication_slot 값이 설정되어야 slot을 생성할 수 있음  
-```
+		```
   
   
     - pg_hba.conf 에서 master server로 request가 올 ip주소 기입  
-```text
+		```text
         ex) host    replication    user_name    ip주소    md5  
         md5는 인증을 위한 method를 기입   
         
         host    replication    replication    172.23.13.0/24    md5
-```
+		```
 
     - 위에서 명시한 ip주소로 요청이 들어오도록 방화벽 설정해주어야 함  
         - test 1. 방화벽 설정 없이 수행 : 방화벽 설정 없이도 수행 O     
         - test 2. 방화벽 설정 후 수행  
         
     - slot 만들기  
-```text
-sudo -u postgres psql # db postgres user로 접속  
-SELECT * FROM pg_create_physical_replication_slot('repl_slot_01');  
-```
+		```text
+		sudo -u postgres psql # db postgres user로 접속  
+		SELECT * FROM pg_create_physical_replication_slot('repl_slot_01');  
+		```
 
 - Stand_by server 
     - systemctl stop postgresql-14
     - master server의 data 디렉터리 그대로 백업하기  
-```text
+		```text
         su - postgres  
         rm -rf /var/lib/pgsql/14/data    // 기존 stand_by의 data 디렉터리 삭제   
         pg_basebackup -h 172.23.13.11 -D /var/lib/pgsql/14/data -U replication -R  
@@ -169,7 +194,7 @@ SELECT * FROM pg_create_physical_replication_slot('repl_slot_01');
             -U: replication user  
             -D: standby server 상의 data 디렉터리 저장 위치  
             -R: 복제를 위한 standby DB 설정을 자동으루 수행 postgresql.auto.conf에 자동 설정  
-```
+		```
   
   
     - systemctl start postgresql-14  
@@ -195,10 +220,110 @@ SELECT * FROM pg_create_physical_replication_slot('repl_slot_01');
 - Fail over: master가 죽었을 때, slave를 master로 전환  
 - Fail back: slave를 통해 master를 복구 즉, master와 slave의 전환 X  
 - warm standby server : master server의 장애로 stnadby server가 master로 승격할 때까지 연결할 수 없는 서버 - hot standby server : read-only 쿼리 요청은 받을 수 있는 서버   
+- pgpool
+- watchdog : pgpool 노드가 살아있는지 지속적으로 체크하고, 죽은 노드를 살아있는 노드로 vip를 셋팅하는 역할  
+  pgpool을 설치하면 내장되어 있는 기능  
+
+- recovery를 위한 속성을 자동으로 설정하는 명령어
+  sudo -u postgres pg_basebackup -h 10.34.96.3 -D /var/lib/postgresql/13/main -U replication -v -P --wal-method=stream --write-recovery-conf
+- replication만으로 slave -> master 승격시킬 경우, slave는 read-only이기 때문에 master에 insert하는 query가 입력됐을 때 runtime error가 발생  
+※ pg_basebackup은 online 으로 진행  
+※ ip주소 확인 - ip addr
+
+#### 장애 복구 방법  
+1. repmgr : vip 생성으로 auto-failover  
+2. pgpool : db server와 db client 사이 미들웨어로 auto-failover 
+3. promot_trigger_file : 수동으로 slave를 master로 승격  
 
 #### 나의 작업
-- promote_trigger_file
-- pg_promote()
+1. repmgr을 통한 auto-failover  
+  - ssh key 등록 : 비밀번호 없이 사용자를 바꿀 수 있도록 하기 위함  
+	  ``` shell
+	  ssh -keygen -t rsa  
+	  # .ssh가 저장될 위치 설정. 엔터입력시 기본 위치로 설정  
+	  # 비밀번호 입력. 엔터시 비밀번호 없음
+	  ssh-copy-id root@ip주소  
+	  ```
+  
+  - repmgr 설치  
+	  ```shell
+	  yum -y install repmgr12*
+	  ```
+  ※ 참고 블로그는 postgresql ver 12을 사용해서 repmgr12를 install 했다고 추측됨  
+      repmgr14* 를 사용해보니.. nopackage 라는 경고 문구가 떠서 repmgre12로 설치함  
+      postgresql 11 버전부터 postgresql 형태가 많이 달라짐  
+      따라서 11~14는 형태가 비슷하다고 생각되어 repmgre12로 설치  
+      오류가 나면 repmgr 버전 다르게 해보기  
+      
+  - postgresql.conf, pg_hba.conf에 repmgr에 필요한 속성 추가  
+	  ```shell
+
+		# for repmgr
+
+		local           replication             repmgr                                   peer
+		host            replication             repmgr          127.0.0.1/32             md5
+		host            replication             repmgr          172.23.13.0/24           md
+	  ```  
+
+  - /usr/pgsql-12/bin 위치에 있던 repmgr 을 /usr/pgsql-14/bin 위치로 이동 
+
+### pgpool
+- sudo apt-get install pgpool2
+    apt-get은 리눅스 패키지를 다운로드 받을 때 사용하는 명령어   
+    aws 등 클라우드에선 해당 명령어가 사용되지 않을 수 있음  
+    사용되지 않을 경우 __yum__ 을 사용해서 다운로드 받으면 됨  
+            
+- pgpool 설치(가장 최신 버전으로 다운)  
+    ```shell
+    rpm pgpool-II-pg10-debuginfo-4.0.18-1pgdg.rhel7.x86_64.rpm  
+    yum install pgpool-II-pg10  
+    ```  
+          
+- pgpool.conf 파일 수정  
+    - 기존 pgpool.conf 백업  
+    ```shell
+    cp pgpool.conf pgpool.conf.backup  
+    ```  
+    
+    - 변수 변경
+    ```shell
+    backend_hostname0 = '172.23.13.11'
+                                       # Host name or IP address to connect to for backend 0
+    backend_port0 = 5432
+                                       # Port number for backend 0
+    backend_weight0 = 0.5
+                                       # Weight for backend 0 (only in load balancing mode)
+    backend_data_directory0 = '/var/lib/pgsql/14/data'
+                                       # Data directory for backend 0
+    backend_flag0 = 'ALLOW_TO_FAILOVER'
+                                       # Controls various backend behavior
+                                       # ALLOW_TO_FAILOVER, DISALLOW_TO_FAILOVER
+                                       # or ALWAYS_MASTER
+
+    backend_hostname1 = '172.23.13.14'
+    backend_port1 = 5432
+    backend_weight1 = 0.5
+    backend_data_directory1 = '/var/lib/pgsql/14/data'
+    backend_flag1 = 'ALLOW_TO_FAILOVER'
+    
+    
+    failover_command = '/etc/pgpool-II/failover.sh %d %P %H %R'
+                                       # Executes this command at failover
+                                       # Special values:
+                                       #   %d = node id
+                                       #   %h = host name
+                                       #   %p = port number
+                                       #   %D = database cluster path
+                                       #   %m = new master node id
+                                       #   %H = hostname of the new master node
+                                       #   %M = old master node id
+                                       #   %P = old primary node id
+                                       #   %r = new master port number
+                                       #   %R = new master database cluster path
+                                       #   %% = '%' character
+
+
+	```
             
 ### ------- 여기까지 진행 후 덕우과장님께 말씀 드리기 ------
         
