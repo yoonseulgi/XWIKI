@@ -230,7 +230,7 @@
 ※ pg_basebackup은 online 으로 진행  
 ※ ip주소 확인 - ip addr
 
-#### 장애 복구 방법  
+#### failover 방법  
 1. repmgr : vip 생성으로 auto-failover  
 2. pgpool : db server와 db client 사이 미들웨어로 auto-failover 
 3. promot_trigger_file : 수동으로 slave를 master로 승격  
