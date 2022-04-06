@@ -7,14 +7,15 @@
 #### 나의 작업  
 - Install the repository RPM:  
     sudo yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm  
-    ※ apt-get : 우분투 환경	yum : 
+    ※ apt-get : 우분투 환경	yum : 레드헷 리눅스 환경(centos 등..)    
 - Install PostgreSQL:  
     sudo yum install -y postgresql14-server  
 
 - Optionally initialize the database and enable automatic start:  
-    sudo /usr/pgsql-14/bin/postgresql-14-setup initd b  
+    sudo /usr/pgsql-14/bin/postgresql-14-setup initdb  
     sudo systemctl enable postgresql-14  
     sudo systemctl start postgresql-14  
+    ※ initdb
 
 - postgresql 접속 : sudo -u postgres psql  
 - postgresql 나가기 : EXIT  
@@ -30,9 +31,9 @@
 - max_connections = 100  
     DB 서버에 최대 동시 연결 수  
 - shared_buffers = 1GB  
-    서버 메모리 기준 1/4~1/2 설정, 디스크를 캐시로 사용하기 위한 공간  
+    서버 메모리 기준 1/4~1/2 설정, 세션들이 공유하여 사용할 메모리 공간    
 - effective_cache_size = 3GB  
-    메모리를 캐시로 사용하기 위한 공간, 서버 메모리의 1/2 이상 설정  
+    단일 쿼리가 사용할 수 있는 디스크 캐시 값 설정  
 - maintenance_work_mem = 256MB  
     인덱스 생성, 외래키 등 유지보수에 사용되는 메모리 공간  
 - checkpoint_completion_target = 0.9  
@@ -175,7 +176,9 @@
 	```
 
     - 위에서 명시한 ip주소로 요청이 들어오도록 방화벽 설정해주어야 함  
-        - 방확벽 설정이라는 것이 pg_hba.conf에서 설정을 변경하는 것을 의미  
+        - 방화벽 설정이라는 것이 pg_hba.conf에서 설정을 변경하는 것을 의미?
+          __NO!__  ph_hba.conf는 ip 설정하는 파일  
+	  방화벽 -> 서버에서 막기 -> ip 테이블 -> pg_hba.conf  
         
     - slot 만들기  
 	```text
