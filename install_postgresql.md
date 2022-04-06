@@ -7,12 +7,12 @@
 #### 나의 작업  
 - Install the repository RPM:  
     sudo yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm  
-
+    ※ apt-get : 우분투 환경	yum : 
 - Install PostgreSQL:  
     sudo yum install -y postgresql14-server  
 
 - Optionally initialize the database and enable automatic start:  
-    sudo /usr/pgsql-14/bin/postgresql-14-setup initdb  
+    sudo /usr/pgsql-14/bin/postgresql-14-setup initd b  
     sudo systemctl enable postgresql-14  
     sudo systemctl start postgresql-14  
 
