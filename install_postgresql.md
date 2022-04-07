@@ -15,7 +15,8 @@
     sudo /usr/pgsql-14/bin/postgresql-14-setup initdb  
     sudo systemctl enable postgresql-14  
     sudo systemctl start postgresql-14  
-    ※ initdb
+    ※ initdb : 데이터베이스 클러스터를 생성함  
+    		postgres, template1, template2 db가 기본적으로 생성되고, 사용자가 db를 생성할 때 template1 형식 그대로 복사됨  
 
 - postgresql 접속 : sudo -u postgres psql  
 - postgresql 나가기 : EXIT  
@@ -25,6 +26,7 @@
 - 서비스 환경에 맞도록 DB 최적화시키기  
 - 서버가 가동되기 전에 환경 설정에 필요한 파라메타 값을 찾아서 미리 설정해주기  
     why? 두 번 가동하지 않도록..  
+- 환경 속성 중 __memory__ > __cpu__ > __storage__ 순으로 중요함   
 
 #### 나의 작업
 - postgresql 환경 파일 경로 : cd /var/lib/pgsql/14/data  
@@ -327,7 +329,24 @@
                                        #   %% = '%' character
 
 
-	```
+	```  
+	
+- failover.sh 작성  
+    - 쉘 스크립트란? 유닉스 환경 등에서 커맨드를 나열한 파일  
+    	언제, 어떤 조건으로 어떤 커맨드를 실행할 것인가 등을 나열한 파일  
+    	확장자 .sh  
+    - #!/bin/sh 로 파일 작성 시작(쉘 스크립트를 작성한다고 명시)  
+    - 쉘 스크립트를 실행하기 위해 __chmod__ -> __./~.sh__ 를 사용   
+    - echo로 출력, read로 입력  
+    	ex) read NAME  
+	    echo "$NAME"  
+	    사용자에게 NAME을 입력받은 후 출력  
+    - if [조건] then  
+      elif [조건] then  
+      else  
+      if  
+    - #!/bin/sh -x : 디버깅 조건  
+※ su user -c 명령어 : 사용자 변경과 명령어를 한 번에 입력     
             
 ### ------- 여기까지 진행 후 덕우과장님께 말씀 드리기 ------
         
