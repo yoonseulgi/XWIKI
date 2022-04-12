@@ -273,7 +273,7 @@
 
   - /usr/pgsql-12/bin 위치에 있던 repmgr 을 /usr/pgsql-14/bin 위치로 이동 
 
-### pgpool
+#### 나의 작업 pgpool
 - sudo apt-get install pgpool2
     apt-get은 리눅스 패키지를 다운로드 받을 때 사용하는 명령어   
     aws 등 클라우드에선 해당 명령어가 사용되지 않을 수 있음  
@@ -282,8 +282,10 @@
 - pgpool 설치(가장 최신 버전으로 다운)  
     ```shell
     rpm pgpool-II-pg10-debuginfo-4.0.18-1pgdg.rhel7.x86_64.rpm  
-    yum install pgpool-II-pg10  
+    yum install pgpool-II-pg10
     ```  
+    
+- pgpool-II-pg10 에서 pg10은 postgresql의 버전임  
           
 - pgpool.conf 파일 수정  
     - 기존 pgpool.conf 백업  
@@ -330,7 +332,7 @@
 
 
 	```  
-	
+  
 - failover.sh 작성  
     - 쉘 스크립트란? 유닉스 환경 등에서 커맨드를 나열한 파일  
     	언제, 어떤 조건으로 어떤 커맨드를 실행할 것인가 등을 나열한 파일  
@@ -347,7 +349,28 @@
       if  
     - #!/bin/sh -x : 디버깅 조건  
 ※ su user -c 명령어 : 사용자 변경과 명령어를 한 번에 입력     
-            
+
+### 여기서 오류 발생  
+
+![1](https://user-images.githubusercontent.com/89211245/162889702-654a46c0-06eb-4f52-8c71-3693de893d62.PNG)  
+
+
+#### 오류를 해결하기 위한 작업  
+1. pgpool.conf 원상복구  
+2. pool_hba.conf 원상복구  
+3. pgpool과 postgresql 버전 다름 및 rpm 일부만 설치 등이 원인으로 파악됨  
+
+
+### 나의 작업  
+1. pgpool 설치  
+```shell
+yum install https://www.pgpool.net/yum/rpms/4.3/redhat/rhel-7-x86_64/pgpool-II-release-4.3-1.noarch.rpm  
+yum install https://www.pgpool.net/yum/rpms/4.3/redhat/rhel-7-x86_64/pgpool-II-pg14-4.3.1-1pgdg.rhel7.x86_64.rpm  
+yum install https://www.pgpool.net/yum/rpms/4.3/redhat/rhel-7-x86_64/pgpool-II-pg14-debuginfo-4.3.1-1pgdg.rhel7.x86_64.rpm yum install https://www.pgpool.net/yum/rpms/4.3/redhat/rhel-7-x86_64/pgpool-II-pg14-devel-4.3.1-1pgdg.rhel7.x86_64.rpm  
+yum install https://www.pgpool.net/yum/rpms/4.3/redhat/rhel-7-x86_64/pgpool-II-pg14-extensions-4.3.1-1pgdg.rhel7.x86_64.rpm
+```  
+2. 
+
 ### ------- 여기까지 진행 후 덕우과장님께 말씀 드리기 ------
         
 ### 5. 백업 및 장애 복구하기
