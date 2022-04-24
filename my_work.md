@@ -82,14 +82,19 @@ primary_slot_name = 'repl_slot01'
   ![new_re](https://user-images.githubusercontent.com/89211245/164955175-60dad866-3982-4e17-b422-c6081f3bd14b.PNG)  
   
   #### 여기서 postgresql 재시작이 안 되는 문제 발생
-  - 기존 백업해둔 데이터 파일을 사용하면 재시작 됨  
-  - 백업해둔 데이터 파일과 새롭게 백업된 데이터 파일의 차이를 비교해보니 파일 권한이 다름을 발견  
-  - 기존 백업 데이터 파일의 사용자 권한은 postgres인데, 새로 백업된 데이터 파일의 사용자 권한은 root로 되어 있었음  
-  - 새로 백업된 데이터 파일의 권한을 postgres로 바꿔주니 문제 해결  
-    ```shell
-    chown postgres.postgres /var/lib/pgsql/14/data 
-    ``` 
-  
+  - __에러1__  
+    - 기존 백업해둔 데이터 파일을 사용하면 재시작 됨  
+    - 백업해둔 데이터 파일과 새롭게 백업된 데이터 파일의 차이를 비교해보니 파일 권한이 다름을 발견  
+    - 기존 백업 데이터 파일의 사용자 권한은 postgres인데, 새로 백업된 데이터 파일의 사용자 권한은 root로 되어 있었음  
+    - 새로 백업된 데이터 파일의 권한을 postgres로 바꿔주니 문제 해결  
+      ```shell
+      chown postgres.postgres /var/lib/pgsql/14/data 
+      ``` 
+  - __에러2__  
+    - 기존 db 서비스를 stop하지 않고 백업 받은 데이터 디렉토리 경로로 db 서비스를 시작하여 에러  
+    - 이미 5432 포트가 열려있기 때문에 해당 포트에 접근하지 못해 발생하는 문제  
+    - 기존 db 서비스가 가동된 data 디렉토리 경로로 db 서비스를 중단해줘야 함  
+    
 ### 4. 환경 변수 바꿔주기  
   - 기존 standby였던 db에서 data 디렉토리를 복사한 것이므로, primary 정보를 수정해야 함 
 
