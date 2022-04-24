@@ -119,4 +119,65 @@ primary_slot_name = 'repl_slot01'
   - 복구 후  
     ![복구후](https://user-images.githubusercontent.com/89211245/164956862-db607665-c769-44e1-a940-8f1411e653ec.PNG)  
 
+### 방법2. wal 파일을 사용한 복구  
+- 지정된 시점에 data 스냅샷을 갖는 파일 단위 복구 방법  
+※ __스냅샷?__ : 스냅샷(snapshot)은 과거의 한 때 존재하고 유지시킨 컴퓨터 파일과 디렉터리의 모임  
+- 모든 wal 파일을 재생하면 drop table, delete 등이 실행된 상태와 같은 상태가 됨  
+- 위와 같은 이유로 특정한 시점(돌리고자 하는 시점)까지만 실행(__PITR__)  
+- wal 파일은 서버가 삭제하거나 덮어쓰기 등으로 wal 파일이 유지되지 않을 수 있기에 다른 디렉토리에 보관할 필요가 있음 (__archive__)  
+#### 1. 데이터 디렉토리 백업  
+  - pg_basepackup 사용  
+  - wal 파일 다른 디렉토리에 보관  
+  ```shell
+  pg_basebackup -D /backup/data -Fp
   
+  # postgresql.conf
+  archive_mode = always
+  archive_command = 'test ! -f /var/lib/pgsql/archive/%f && cp %p /var/lib/pgsql/archive/%f'
+  ```
+### 여기서 에러 발생 
+- __에러 1.__  
+  - 백업한 data 디렉토리의 pg_wal을 사용해야 한다고 생각함  
+  - 위와 같은 이유로 기존 pg_wal 파일을 사용하지 않고, 백업한 data의 pg_wal을 사용함  
+  - 백업한 data의 pg_wal엔 지정한 시점에 정보가 없을 수 있기 때문에 에러가 발생했던 것  
+- __에러 2.__  
+  - 백업한 data 디렉토리 경로로 db 서버를 실행해야 하는데, 기존 data 디렉토리 경로로 db 서버를 실행함  
+  - 위와 같이 실행하면 복구가 되지 않음  
+  - 이유는 기존 wal 파일을 실행하면 현재 상태(drop table 등이 실행된 상태)가 유지되기 때문에  
+#### 2. pg_wal 파일 복사 
+  - db 서버를 위에서 백업한 데이터 디렉토리 경로로 실행할 것이기 때문에 기존 pg_wal 파일을 백업한 데이터 디렉토리로 복사  
+  ```shell
+  cp -r /var/lib/pgsql/14/data/pg_wal /backup/data/pg_wal
+      # -r 디렉토리 하위 파일도 모두 복사 
+      # -p 원본 파일의 소유자, 그룹, 권한 등의 정보까지 모두 복사
+  ```
+#### 3. 백업한 data 디렉토리 기존 db 실행 경로로 복사  
+  - 기존 db 서버 실행 경로로 백업한 디렉토리를 복사하지 않으면 db 서버 실행할 때 경로도 함께 명시해주거나 db 실행 경로 수정이 필요함  
+  ```shell
+  cp -r /backup/data /var/lib/pgsql/14/data
+  ```
+
+#### 4. 복구 신호 
+  - recovery.signal 파일로 복구 신호
+  ```shell
+  # data 디렉토리 내에 recovery.signal 파일 생성
+  touch recovery.signal 
+  ```
+### 여기서 오류 발생  
+- recovery_target_time을 지정된 형식에 맞게 입력해야 하나 형식을 다르게 입력함  
+- 2022-04-24 18:16:29.651735+09(X)  
+- 2022-04-24 18:16:29.651(O)  
+#### 5. 원하는 시점 지정  
+ - postgresql.conf에 명시  
+ - restore_command는 서버가 재생할 wal 파일의 위치  
+ - 서버가 wal 파일을 재생하면서 pg_wal 디렉터리로 wal파일을 복사함  
+ - recovery_target_time은 복구하고자 하는 시점 명시(복구 프로세스가 중지할 시점)  
+   ```shell
+   restore_command = 'cp /var/lib/pgsql/archive/%f %p'
+   recovery_target_time = '2022-04-24 18:16:29.651'
+   ```
+- drop table  
+<img width="262" alt="targettime" src="https://user-images.githubusercontent.com/89211245/164980787-8364afc0-22a6-49d7-a141-6fdd0a3cf8eb.png">  
+- table 복구  
+<img width="245" alt="삭제된 테이블 살림" src="https://user-images.githubusercontent.com/89211245/164980998-c61eb5c9-f6c8-4b29-a6b3-6e8b12c43e6f.png">  
+
