@@ -185,4 +185,4 @@ primary_slot_name = 'repl_slot01'
 <img width="262" alt="targettime" src="https://user-images.githubusercontent.com/89211245/164980787-8364afc0-22a6-49d7-a141-6fdd0a3cf8eb.png">  
 - table 복구  
 <img width="245" alt="삭제된 테이블 살림" src="https://user-images.githubusercontent.com/89211245/164980998-c61eb5c9-f6c8-4b29-a6b3-6e8b12c43e6f.png">  
-
+g
