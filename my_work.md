@@ -35,6 +35,7 @@
   su - postgres  
   rm -rf /var/lib/pgsql/14/data    // 기존 stand_by의 data 디렉터리 삭제   
   pg_basebackup -h 172.23.13.11 -D /var/lib/pgsql/14/data -U replication -R
+          # -R replication에 필요한 primary info를 postgresql.auto.conf 파일에 자동 작성  
   ```
   ※ __주의__  
   - 사용자를 postgres로 변경하지 않고 pg_basepback을 수행하면 data 디렉토리의 권한이 root로 설정됨.  
@@ -113,6 +114,8 @@ primary_slot_name = 'repl_slot01'
 
   ※ __참고__  
     - pg_dump는 테이블, 인덱스, 함수 등 작은 단위로도 백업이 가능함  
+    - 증분백업이 불가능  
+    - 증분백업이란 변경된 데이터만 백업하는 방식  
       
   - 데이터베이스 복구  
       ```shell
@@ -137,9 +140,11 @@ primary_slot_name = 'repl_slot01'
   pg_basebackup -D /backup/data -Fp
   
   # postgresql.conf
-  archive_mode = always
+  archive_mode = on
   archive_command = 'test ! -f /var/lib/pgsql/archive/%f && cp %p /var/lib/pgsql/archive/%f'
-  ```
+  ```  
+  - __test__ : 파일 존재유무, 타입, 권한을 체크  
+    - 긍정이면 0, 부정이면 1 return   
 ### 여기서 에러 발생 
 - __에러 1.__  
   - 백업한 data 디렉토리의 pg_wal을 사용해야 한다고 생각함  
@@ -168,6 +173,9 @@ primary_slot_name = 'repl_slot01'
   # data 디렉토리 내에 recovery.signal 파일 생성
   touch recovery.signal 
   ```
+  - __touch__ vs __vi__ vs __cat__  
+    - touch : 내용 없는 파일이 생성  
+    - cat : ㅇㅇ 
 ### 여기서 오류 발생  
 - recovery_target_time을 지정된 형식에 맞게 입력해야 하나 형식을 다르게 입력함  
 - 2022-04-24 18:16:29.651735+09(X)  
