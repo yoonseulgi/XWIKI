@@ -112,7 +112,7 @@ primary_slot_name = 'repl_slot01'
             # 마지막은 데이터베이스 명  
     ```  
 
-  ※ __참고__  
+    ※ __참고__  
     - pg_dump는 테이블, 인덱스, 함수 등 작은 단위로도 백업이 가능함  
     - 증분백업이 불가능  
     - 증분백업이란 변경된 데이터만 백업하는 방식  
@@ -173,9 +173,8 @@ primary_slot_name = 'repl_slot01'
   # data 디렉토리 내에 recovery.signal 파일 생성
   touch recovery.signal 
   ```
-  - __touch__ vs __vi__ vs __cat__  
-    - touch : 내용 없는 파일이 생성  
-    - cat : ㅇㅇ 
+  - touch : 내용 없는 파일이 생성  
+    
 ### 여기서 오류 발생  
 - recovery_target_time을 지정된 형식에 맞게 입력해야 하나 형식을 다르게 입력함  
 - 2022-04-24 18:16:29.651735+09(X)  
@@ -190,7 +189,7 @@ primary_slot_name = 'repl_slot01'
    recovery_target_time = '2022-04-24 18:16:29.651'
    ```
 - drop table  
-<img width="262" alt="targettime" src="https://user-images.githubusercontent.com/89211245/164980787-8364afc0-22a6-49d7-a141-6fdd0a3cf8eb.png">  
+  <img width="262" alt="targettime" src="https://user-images.githubusercontent.com/89211245/164980787-8364afc0-22a6-49d7-a141-6fdd0a3cf8eb.png">  
 - table 복구  
-<img width="245" alt="삭제된 테이블 살림" src="https://user-images.githubusercontent.com/89211245/164980998-c61eb5c9-f6c8-4b29-a6b3-6e8b12c43e6f.png">  
-g
+  <img width="245" alt="삭제된 테이블 살림" src="https://user-images.githubusercontent.com/89211245/164980998-c61eb5c9-f6c8-4b29-a6b3-6e8b12c43e6f.png">  
+
