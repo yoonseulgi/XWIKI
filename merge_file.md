@@ -60,20 +60,69 @@
     ```shell 
     mkdir /var/lib/pgsql/14/archive
     ```
-    - 디렉토리 권한 __postgres__ 로 변경  
+    - 디렉토리 권한 __postgres__ 로 변경   
     ```shell 
     chown -R postgres.postgres /var/lib/pgsql/14/data/archive
     ```
     
 ## replication  
 - Streaming Replication은 지속적으로 WAL XLOG 레코드를 primary 서버들의 변화되는 내용을 standby server들에게 전달 및 적용하는 기능을 제공 
-### replication user 생성  
+### 1. replication user 생성  
 ```
+# 방법 1. 
+createuser -U postgres --replication repuser -P
 
+# 방법 2. DB 접속 후 
+CREATE ROLE repuser WITH REPLICATION LOGIN;
 ```
+### 2. replication user 인증 설정  
+- pg_hba.conf 파일에 replication user 정보를 입력하여 postgresql에 접속하는 user 인증 설정
+```text 
+host replication repuser 172.23.13.13/32 trust
 
-### slot 생성
+# ip 대역으로 사용자 인증(172.23.13.0 대역 사용자는 DB 연결 허용)
+host replication repuser 172.23.13.0/24 trust
+```
+__※ 주의__  
+  - 인증 방식을 제대로 지정해주지는 않으면 에러 발생  
+  - user 암호가 없다면 trust(인증 방법 없이 DB 접속 허용)  
+  - 사용자 암호를 부여했다면 md5, scram-sha-256 등 인증 방식 설정  
+
+### 3. slot 생성(primary server에서 진행)  
 - standby가 모든 wal 파일을 수신할 때까지 primary는 wal 파일을 삭제하지 않음  
 - primary와 standby의 연결이 끊긴 경우에도 충돌이 발생하지 않도록 wal 파일을 유지함  
-    
-    
+```shell
+# slot 생성 
+postgres=# select * from pg_create_physical_replication_slot('replication_slot');  
+
+# slot 확인  
+postgres=# select * from pg_replication_slots;
+```
+
+### 4. replication 설정(standby server에서 진행)  
+- hot_standby 설정 
+```text
+hot_standby = on   
+```
+- primary의 data 디렉토리 백업받기  
+```shell
+su - postgres
+rm -rf /var/lib/pgsql/14/data    # 기존 stand_by의 data 디렉터리 삭제
+pg_basebackup -h 172.23.13.12 -D /var/lib/pgsql/14/data -U repuser -R  
+         # -h: master server host  
+         # -U: replication user  
+         # -D: standby server 상의 data 디렉터리 저장 위치  
+         # -R: 복제를 위한 standby DB 설정을 자동으루 수행 postgresql.auto.conf에 자동 설정 
+```
+- (primary 서버 정보 자동설정 옵션(-R)을 주지 않은 경우) primary 정보 standby 환경 변수 파일에 변경   
+```
+primary_conninfo = 'user=repuser port=5432 host=172.23.13.12'
+primary_slot_name = 'replication_slot'
+```
+
+### 5. replication 확인
+- 방법 1. primary 서버 db에서 insert/delete 등 쿼리 실행하고, standby 서버 db에도 적용되었는지 확인  
+- 방법 2. 
+```shell 
+postgres=# select * from pg_stat_replication;
+```
