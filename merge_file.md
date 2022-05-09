@@ -126,3 +126,19 @@ primary_slot_name = 'replication_slot'
 ```shell 
 postgres=# select * from pg_stat_replication;
 ```
+
+## HA 
+- 일반적으로 vip 설정 후 HA test 함  
+- 해당 문서에서는 vip 설정 없이 HA test 했음 
+- master <-> standby  
+### standby server를 새로운 primary server로 승격  
+```sql
+select pg_promote();
+```
+
+### 기존 primary server를 새로운 standby server로 replication 설정  
+#### 1. 새로운 primary 서버(기존 standby 서버)에 slot 생성  
+  ```
+  select * from pg_create_physical_replication_slot('replication_slot');
+  ```
+  
