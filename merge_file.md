@@ -190,3 +190,12 @@ $> vi /etc/sysconfig/network-scripts/ifcfg-eth0:0
 $> ifup eth0:0
 $> ifconfig -a    # 네트워크 인터페이스 확인  
 ```
+
+#### 2) pg_hba.conf 파일에 secondary ip 추가  
+```shell
+#     DB명   USER명  ip주소           인증 method 
+host  all    all     172.16.1.0/24   trust
+```
+
+## backup & recovery  
+### 방법 1. 시점복구(Point In Time Recovery) 
