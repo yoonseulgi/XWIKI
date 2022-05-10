@@ -67,6 +67,8 @@
     
 ## replication  
 - Streaming Replication은 지속적으로 WAL XLOG 레코드를 primary 서버들의 변화되는 내용을 standby server들에게 전달 및 적용하는 기능을 제공 
+- __primary server ip : 172.23.13.12__  
+- __standby server ip : 172.23.13.13__  
 ### 1. replication user 생성  
 ```
 # 방법 1. 
@@ -131,14 +133,60 @@ postgres=# select * from pg_stat_replication;
 - 일반적으로 vip 설정 후 HA test 함  
 - 해당 문서에서는 vip 설정 없이 HA test 했음 
 - master <-> standby  
-### standby server를 새로운 primary server로 승격  
+### 1. standby server를 새로운 primary server로 승격  
 ```sql
 select pg_promote();
 ```
 
-### 기존 primary server를 새로운 standby server로 replication 설정  
-#### 1. 새로운 primary 서버(기존 standby 서버)에 slot 생성  
+### 2. 기존 primary server를 새로운 standby server로 replication 설정  
+#### 1) 새로운 primary 서버(기존 standby 서버)에 replication 접속을 위한 환경 변수 주석 처리  
+  ```shell
+  # primary_conninfo = 'user=repuser host=172.23.13.12 port=5432'
+  # primary_slot_name = 'replication_slot'
   ```
+#### 2) 새로운 primary 서버(기존 standby 서버)에 slot 생성  
+  ```shell 
+  # slot 생성
   select * from pg_create_physical_replication_slot('replication_slot');
+  
+  # slot 확인 
+  select * from pg_replication_slots; 
   ```
   
+#### 3) 기존 primary 서버를 새로운 standby 서버로 전환  
+```shell
+su - postgres
+rm -rf /var/lib/pgsql/14/data    # 기존 stand_by의 data 디렉터리 삭제
+pg_basebackup -h 172.23.13.13 -D /var/lib/pgsql/14/data -U repuser -R  
+         # -h: master server host  
+         # -U: replication user  
+         # -D: standby server 상의 data 디렉터리 저장 위치  
+         # -R: 복제를 위한 standby DB 설정을 자동으루 수행 postgresql.auto.conf에 자동 설정
+```
+
+#### 4) 새로운 standby 서버(기존 primary 서버)의 replication 접속 정보 수정  
+- basebackup의 -R 옵션을 준 경우 생략해도 됨  
+```shell
+primary_conninfo = 'user=repuser host=172.23.13.13 port=5432'
+primary_slot_name = 'replication_slot'
+hot_standby=on
+```
+
+#### 5) 새로운 primary 서버에서 replication 확인  
+
+### 3. secondary ip 적용  
+- https://guide-fin.ncloud-docs.com/docs/compute-server-nicsecondaryip  
+- 네트워크 인터페이스에 보조 ip를 추가함으로 HA에 활용  
+
+#### 1) 네트워크 인터페이스 추가
+```shell
+$> vi /etc/sysconfig/network-scripts/ifcfg-eth0:0
+  # ifcfg-eth0:0 파일 내용 작성 
+  DEVICE=eth0:0
+  BOOTPROTO=static
+  IPADDR=Secondary IP 입력
+  NETMASK=Subnet Range 입력
+  ONBOOT=yes
+$> ifup eth0:0
+$> ifconfig -a    # 네트워크 인터페이스 확인  
+```
