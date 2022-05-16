@@ -199,38 +199,40 @@ host  all    all     172.16.1.0/24   trust
 
 ## backup & recovery  
 ### 시점복구(Point In Time Recovery)  
-- 분리 공간에 wal 세그먼트를 모두 저장함으로써 과거 특정 시점으로 복구  
-### 방법 1. recovery_target_rime  
+- wal 파일을 사용해 원하는 과거 특정 시점으로 복구  
+  (데이터베이스의 모든 변경 사항을 wal 파일로 기록)  
+
+### 방법 1. recovery_target_time  
 #### 1) __pg_basebackup__ 으로 현재 DB 백업  
   ```shell
   -bash-4.2$ pg_basebackup -U postgres --progress -D /var/lib/pgsql/14/backups/
   ```
 
-#### 2) log에서 복구하고자 하는 시점 시간 확인  
-  - pg_swicth_wal()은 현재 wal 파일을 보관하고, wal 위치 + 1 값을 리턴함  
-  - lsn 값이 log 파일에 기록되는 기능을 제공한다면 log 파일을 통해 복구 가능  
-  ```sql
-  select pg_switch_wal();
+#### 2) log에서 복구하고자 하는 시점 확인  
+  - log 파일에서 복구하고자 하는 시점 확인  
+  ```sehll
+  # ex
+  2022-04-24 18:16:29.651 ...
   ```
   
-  2022-04-24 18:16:29.651
 #### 2) 데이터베이스 stop
   - 복구 수행 시  
   ```shell
   -bash-4.2$ pgstop
   ```
 
-#### 3) 기존 data 디렉토리를 백업받은 데이터 디렉토리로 변경  
+#### 3) 기존 data 디렉토리를 백업받은 data 디렉토리로 변경  
   ```shell
-  -bash-4.2$ rm -rf /var/lib/pgsql/14/data/
-  -bash-4.2$ cp -r /var/lib/pgsql/14/backups/* /var/lib/pgsql/14/data/
+  -bash-4.2$ rm -rf /var/lib/pgsql/14/data/   # 기존 data 디렉토리 삭제  
+  -bash-4.2$ cp -r /var/lib/pgsql/14/backups/* /var/lib/pgsql/14/data/ 
+                                              # 삭제된 data 디렉토리 위치에 백업받은 data 디렉토리 복사
   ```
   
 #### 4) 복구에 사용될 환경변수 변경(postgresql.conf)  
-  - log에서 복구하고자 하는 시점 시간 확인  
+  - log에서 돌아가고자 하는 시점 시간 확인  
   ```shell
   # 복구 시점 부여
-  recovery_target_lsn= '0/50336F8'
+  recovery_target_time= '2022-04-24 18:16:29.651'
   ```
 #### 6) DB 복구모드 실행을 알리는 recovery.signal 파일을 데이터 디렉토리에 생성  
   ```shell
@@ -263,8 +265,9 @@ host  all    all     172.16.1.0/24   trust
 
 #### 4) 기존 data 디렉토리를 백업받은 데이터 디렉토리로 변경  
   ```shell
-  -bash-4.2$ rm -rf /var/lib/pgsql/14/data/
+  -bash-4.2$ rm -rf /var/lib/pgsql/14/data/   # 기존 data 디렉토리 삭제 
   -bash-4.2$ cp -r /var/lib/pgsql/14/backups/* /var/lib/pgsql/14/data/
+                                              # 삭제된 data 디렉토리 위치에 백업받은 data 디렉토리 복사
   ```
   
 #### 5) 복구에 사용될 환경변수 변경(postgresql.conf)  
