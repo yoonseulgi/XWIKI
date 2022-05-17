@@ -247,35 +247,38 @@ host  all    all     172.16.1.0/24   trust
   ```shell
   -bash-4.2$ pg_basebackup -U postgres --progress -D /var/lib/pgsql/14/backups/
   ```
-#### 2) 데이터베이스 stop
-  ```shell
-  -bash-4.2$ pgstop
-  ```
-
-#### 3) 기존 data 디렉토리를 백업받은 데이터 디렉토리로 변경  
-  ```shell
-  -bash-4.2$ rm -rf /var/lib/pgsql/14/data/   # 기존 data 디렉토리 삭제 
-  -bash-4.2$ cp -r /var/lib/pgsql/14/backups/* /var/lib/pgsql/14/data/
-                                              # 삭제된 data 디렉토리 위치에 백업받은 data 디렉토리 복사
-  ```
   
-#### 4) 복구에 사용될 환경변수 변경(postgresql.conf)  
+#### 2) wal lsn 위치 확인  
   - pg_swicth_wal()은 현재 wal 파일을 보관하고, wal 위치 + 1 값을 리턴함  
   - lsn 값이 log 파일에 기록되는 기능을 제공한다면 log 파일을 통해 복구 가능  
   ```sql
   select pg_switch_wal();
   ```
   
+#### 3) 데이터베이스 stop
+  ```shell
+  -bash-4.2$ pgstop
+  ```
+
+#### 4) 기존 data 디렉토리를 백업받은 데이터 디렉토리로 변경  
+  ```shell
+  -bash-4.2$ rm -rf /var/lib/pgsql/14/data/   # 기존 data 디렉토리 삭제 
+  -bash-4.2$ cp -r /var/lib/pgsql/14/backups/* /var/lib/pgsql/14/data/
+                                              # 삭제된 data 디렉토리 위치에 백업받은 data 디렉토리 복사
+  ```
+  
+#### 5) 복구에 사용될 환경변수 변경(postgresql.conf)    
   ```shell
   # 복구 시점 부여
   recovery_target_lsn= '0/50336F8'
   ```
-#### 5) DB 복구모드 실행을 알리는 recovery.signal 파일을 데이터 디렉토리에 생성  
+  
+#### 6) DB 복구모드 실행을 알리는 recovery.signal 파일을 데이터 디렉토리에 생성  
   ```shell
   -bash-4.2$ touch recovery.signal  
   ```
   
-#### 6) 데이터베이스 시작  
+#### 7) 데이터베이스 시작  
   ```shell
   -bash-4.2$ pgstart
   ```
