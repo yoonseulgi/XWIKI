@@ -6,7 +6,7 @@
   sudo yum install -y postgresql14-server  
   ```
   - .bash_profile  
-    - 간단하게 사용하고 싶은 postgresql의 명령어를 명시  
+    - postgresql의 명령어를 명시  
     ```text
     [ -f /etc/profile ] && source /etc/profile
     PGDATA=/var/lib/pgsql/14/data
@@ -66,7 +66,7 @@
     ```
     
 ## replication  
-- Streaming Replication은 지속적으로 WAL XLOG 레코드를 primary 서버들의 변화되는 내용을 standby server들에게 전달 및 적용하는 기능을 제공 
+- Streaming Replication은 WAL XLOG 레코드를 최신 상태로 유지하기 위해 primary 서버의 변경된 내용을 standby 서버로 전달 및 적용  
 - __primary server ip : 172.23.13.12__  
 - __standby server ip : 172.23.13.13__  
 ### 1. replication user 생성  
@@ -90,7 +90,7 @@ __※ 주의__
   - user 암호가 없다면 trust(인증 방법 없이 DB 접속 허용)  
   - 사용자 암호를 부여했다면 md5, scram-sha-256 등 인증 방식 설정  
 
-### 3. slot 생성(primary server에서 진행)  
+### 3. slot 생성(primary 서버)  
 - standby가 모든 wal 파일을 수신할 때까지 primary는 wal 파일을 삭제하지 않음  
 - primary와 standby의 연결이 끊긴 경우에도 충돌이 발생하지 않도록 wal 파일을 유지함  
 ```shell
@@ -101,9 +101,10 @@ postgres=# select * from pg_create_physical_replication_slot('replication_slot')
 postgres=# select * from pg_replication_slots;
 ```
 
-### 4. replication 설정(standby server에서 진행)  
+### 4. replication 설정(standby 서버)  
 - hot_standby 설정 
-```text
+```shell
+# postgresql.conf
 hot_standby = on   
 ```
 - primary의 data 디렉토리 백업받기  
@@ -116,7 +117,7 @@ pg_basebackup -h 172.23.13.12 -D /var/lib/pgsql/14/data -U repuser -R
          # -D: standby server 상의 data 디렉터리 저장 위치  
          # -R: 복제를 위한 standby DB 설정을 자동으루 수행 postgresql.auto.conf에 자동 설정 
 ```
-- (primary 서버 정보 자동설정 옵션(-R)을 주지 않은 경우) primary 정보 standby 환경 변수 파일에 변경   
+- (primary 서버 정보 자동설정 옵션(-R)을 주지 않은 경우) standby 환경 변수 파일(postgresql.conf)에 primary 정보 추가  
 ```
 primary_conninfo = 'user=repuser port=5432 host=172.23.13.12'
 primary_slot_name = 'replication_slot'
@@ -138,7 +139,7 @@ postgres=# select * from pg_stat_replication;
 select pg_promote();
 ```
 
-### 2. 기존 primary server를 새로운 standby server로 replication 설정  
+### 2. 기존 primary 서버를 새로운 standby 서버로 replication 설정  
 #### 1) 새로운 primary 서버(기존 standby 서버)에 replication 접속을 위한 환경 변수 주석 처리  
   ```shell
   # primary_conninfo = 'user=repuser host=172.23.13.12 port=5432'
@@ -173,6 +174,9 @@ hot_standby=on
 ```
 
 #### 5) 새로운 primary 서버에서 replication 확인  
+```shell
+select * from pg_stat_replication;
+```
 
 ### 3. secondary ip 적용  
 - https://guide-fin.ncloud-docs.com/docs/compute-server-nicsecondaryip  
@@ -207,16 +211,9 @@ host  all    all     172.16.1.0/24   trust
   ```shell
   -bash-4.2$ pg_basebackup -U postgres --progress -D /var/lib/pgsql/14/backups/
   ```
-
-#### 2) log에서 복구하고자 하는 시점 확인  
-  - log 파일에서 복구하고자 하는 시점 확인  
-  ```sehll
-  # ex
-  2022-04-24 18:16:29.651 ...
-  ```
   
 #### 2) 데이터베이스 stop
-  - 복구 수행 시  
+  - 복구 시 데이터베이스를 stop하고 수행  
   ```shell
   -bash-4.2$ pgstop
   ```
@@ -234,16 +231,15 @@ host  all    all     172.16.1.0/24   trust
   # 복구 시점 부여
   recovery_target_time= '2022-04-24 18:16:29.651'
   ```
-#### 6) DB 복구모드 실행을 알리는 recovery.signal 파일을 데이터 디렉토리에 생성  
+#### 5) DB 복구모드 실행을 알리는 recovery.signal 파일을 데이터 디렉토리에 생성  
   ```shell
   -bash-4.2$ touch recovery.signal  
   ```
   
-#### 7) 데이터베이스 시작  
+#### 6) 데이터베이스 시작  
   ```shell
   -bash-4.2$ pgstart
   ```
-
 
 
 ### 방법 2. wal_lsn  
@@ -251,36 +247,35 @@ host  all    all     172.16.1.0/24   trust
   ```shell
   -bash-4.2$ pg_basebackup -U postgres --progress -D /var/lib/pgsql/14/backups/
   ```
-
-#### 2)lsn 값 확인
-  - pg_swicth_wal()은 현재 wal 파일을 보관하고, wal 위치 + 1 값을 리턴함  
-  - lsn 값이 log 파일에 기록되는 기능을 제공한다면 log 파일을 통해 복구 가능  
-  ```sql
-  select pg_switch_wal();
-  ```
-#### 3) 데이터베이스 stop
+#### 2) 데이터베이스 stop
   ```shell
   -bash-4.2$ pgstop
   ```
 
-#### 4) 기존 data 디렉토리를 백업받은 데이터 디렉토리로 변경  
+#### 3) 기존 data 디렉토리를 백업받은 데이터 디렉토리로 변경  
   ```shell
   -bash-4.2$ rm -rf /var/lib/pgsql/14/data/   # 기존 data 디렉토리 삭제 
   -bash-4.2$ cp -r /var/lib/pgsql/14/backups/* /var/lib/pgsql/14/data/
                                               # 삭제된 data 디렉토리 위치에 백업받은 data 디렉토리 복사
   ```
   
-#### 5) 복구에 사용될 환경변수 변경(postgresql.conf)  
+#### 4) 복구에 사용될 환경변수 변경(postgresql.conf)  
+  - pg_swicth_wal()은 현재 wal 파일을 보관하고, wal 위치 + 1 값을 리턴함  
+  - lsn 값이 log 파일에 기록되는 기능을 제공한다면 log 파일을 통해 복구 가능  
+  ```sql
+  select pg_switch_wal();
+  ```
+  
   ```shell
   # 복구 시점 부여
   recovery_target_lsn= '0/50336F8'
   ```
-#### 6) DB 복구모드 실행을 알리는 recovery.signal 파일을 데이터 디렉토리에 생성  
+#### 5) DB 복구모드 실행을 알리는 recovery.signal 파일을 데이터 디렉토리에 생성  
   ```shell
   -bash-4.2$ touch recovery.signal  
   ```
   
-#### 7) 데이터베이스 시작  
+#### 6) 데이터베이스 시작  
   ```shell
   -bash-4.2$ pgstart
   ```
